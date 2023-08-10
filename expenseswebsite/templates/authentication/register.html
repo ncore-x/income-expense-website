@@ -17,6 +17,7 @@
               name="username"
               placeholder="username"
               id="usernameField"
+              value='{{ fieldValues.username }}'
               class="form-control form-control-sm"
             />
           </div>
@@ -32,6 +33,9 @@
               placeholder="email"
               id="emailField"
               class="form-control form-control-sm"
+
+              value='{{ fieldValues.email }}'
+
             />
           </div>
 
@@ -53,7 +57,7 @@
           <input
             type="submit"
             value="Register"
-            class="btn btn-block btn-primary"
+            class="btn btn-block btn-primary submit-btn"
           />
         </form>
       </div>
