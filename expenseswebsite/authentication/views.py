@@ -4,6 +4,7 @@ import json
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 from validate_email import validate_email
+from django.contrib import messages
 
 
 class EmailValidationView(View):
@@ -25,10 +26,18 @@ class UsernameValidationView(View):
             return JsonResponse({'username_error': 'username should only contain alphanumeric characters'}, status=400)
         if User.objects.filter(username=username).exists():
             return JsonResponse({'username_error': 'sorry username is use, choose another one'}, status=409)
-
         return JsonResponse({'username_valid': True})
 
 
 class RegistrationView(View):
     def get(self, request):
+        return render(request, 'authentication/register.html')
+
+    def post(self, request):
+
+        messages.success(request, 'Success whatsapp success')
+        messages.warning(request, 'Success whatsapp warning')
+        messages.info(request, 'Success whatsapp info')
+        messages.error(request, 'Success whatsapp err')
+
         return render(request, 'authentication/register.html')
