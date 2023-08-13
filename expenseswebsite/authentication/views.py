@@ -9,6 +9,12 @@ from django.core.mail import EmailMessage
 from django.core.mail import send_mail
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.contrib import auth
+from django.urls import reverse
+from django.utils.encoding import force_bytes, force_str, DjangoUnicodeDecodeError
+from django.contrib.sites.shortcuts import get_current_site
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from .utils import token_generator
 
 
 class EmailValidationView(View):
@@ -61,8 +67,24 @@ class RegistrationView(View):
                 user.set_password(password)
                 user.is_active = False
                 user.save()
+
+            #   path_ti_view
+                #   getting domain we are on
+                #   relative url to verfication
+                #   token
+
+                uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
+
+                domain = get_current_site(request).domain
+                link = reverse('activate', kwargs={'uidb64': uidb64, 'token': token_generator.make_token(user)})
+
+                activate_url = 'http://'+domain+link
+
+                email_body = 'Hi '+user.username + \
+                    'Please use this link to verify your account\n' + activate_url
+
                 email_subject = 'Activate your account'
-                email_body = 'Test body'
+
                 email = EmailMessage(
                     email_subject,
                     email_body,
@@ -74,3 +96,8 @@ class RegistrationView(View):
                 return render(request, 'authentication/register.html')
 
         return render(request, 'authentication/register.html')
+
+
+class VerificationView(View):
+    def get(self, request, uid64, token):
+        return redirect('login')
