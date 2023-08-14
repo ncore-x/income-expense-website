@@ -12,9 +12,8 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.contrib import auth
 from django.urls import reverse
 from django.utils.encoding import force_bytes, force_str, DjangoUnicodeDecodeError
-from django.contrib.sites.shortcuts import get_current_site
-from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from .utils import token_generator
+from .utils import account_activation_token
+from django.template.loader import render_to_string
 
 
 class EmailValidationView(View):
@@ -58,7 +57,6 @@ class RegistrationView(View):
 
         if not User.objects.filter(username=username).exists():
             if not User.objects.filter(email=email).exists():
-
                 if len(password) < 6:
                     messages.error(request, 'Password too short')
                     return render(request, 'authentication/register.html', context)
@@ -67,27 +65,23 @@ class RegistrationView(View):
                 user.set_password(password)
                 user.is_active = False
                 user.save()
+                current_site = get_current_site(request)
+                email_body = {
+                    'user': user,
+                    'domain': current_site.domain,
+                    'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                    'token': account_activation_token.make_token(user),
+                }
 
-            #   path_ti_view
-                #   getting domain we are on
-                #   relative url to verfication
-                #   token
-
-                uidb64 = urlsafe_base64_encode(force_bytes(user.pk))
-
-                domain = get_current_site(request).domain
-                link = reverse('activate', kwargs={'uidb64': uidb64, 'token': token_generator.make_token(user)})
-
-                activate_url = 'http://'+domain+link
-
-                email_body = 'Hi '+user.username + \
-                    'Please use this link to verify your account\n' + activate_url
+                link = reverse('activate', kwargs={'uidb64': email_body['uid'], 'token': email_body['token']})
 
                 email_subject = 'Activate your account'
 
+                activate_url = 'http://'+current_site.domain+link
+
                 email = EmailMessage(
                     email_subject,
-                    email_body,
+                    'Hi ' + user.username + ', Please use this link to verify your account\n' + activate_url,
                     'noreply@semycolon.com',
                     [email],
                 )
@@ -99,5 +93,28 @@ class RegistrationView(View):
 
 
 class VerificationView(View):
-    def get(self, request, uid64, token):
+    def get(self, request, uidb64, token):
+        try:
+            id = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=id)
+
+            if not account_activation_token.check_token(user, token):
+                return redirect('login'+'?message='+'User alredy activated')
+
+            if user.is_active:
+                return redirect('login')
+            user.is_active = True
+            user.save()
+
+            messages.success(request, 'Account activated successfully')
+            return redirect('login')
+
+        except Exception as ex:
+            pass
+
         return redirect('login')
+
+
+class LoginView(View):
+    def get(self, request):
+        return render(request, 'authentication/login.html')
