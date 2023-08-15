@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes, force_str, DjangoUnicodeDecodeError
 from .utils import account_activation_token
 from django.template.loader import render_to_string
+from django.contrib import auth
 
 
 class EmailValidationView(View):
@@ -73,7 +74,8 @@ class RegistrationView(View):
                     'token': account_activation_token.make_token(user),
                 }
 
-                link = reverse('activate', kwargs={'uidb64': email_body['uid'], 'token': email_body['token']})
+                link = reverse('activate', kwargs={
+                               'uidb64': email_body['uid'], 'token': email_body['token']})
 
                 email_subject = 'Activate your account'
 
@@ -118,3 +120,34 @@ class VerificationView(View):
 class LoginView(View):
     def get(self, request):
         return render(request, 'authentication/login.html')
+
+    def post(self, request):
+        username = request.POST['username']
+        password = request.POST['username']
+
+        if username and password:
+            user = auth.authnticate(username=username, password=password)
+
+            if user:
+                if user.is_active:
+                    auth.login(requst, user)
+                    messages.success(request, 'Welcome, '+user,
+                                     username+' you are now logged in')
+                    return redirect('expenses')
+                messages.error(
+                    request, 'Account is not active, please check your email')
+                return render(request, 'authentication/login.html')
+            messages.error(
+                request, 'invalid credentials, try again')
+            return render(request, 'authentication/login.html')
+
+        messages.error(
+            request, 'Please fill all fields')
+        return render(request, 'authentication/login.html')
+
+
+class LogoutView(View):
+    def post(self, request):
+        auth.logout(request)
+        messages.success(request, 'You have been logged out')
+        return redidect('login')
