@@ -14,7 +14,6 @@ from django.urls import reverse
 from django.utils.encoding import force_bytes, force_str, DjangoUnicodeDecodeError
 from .utils import account_activation_token
 from django.template.loader import render_to_string
-from django.contrib import auth
 
 
 class EmailValidationView(View):
@@ -123,16 +122,15 @@ class LoginView(View):
 
     def post(self, request):
         username = request.POST['username']
-        password = request.POST['username']
+        password = request.POST['password']
 
         if username and password:
-            user = auth.authnticate(username=username, password=password)
+            user = auth.authenticate(username=username, password=password)
 
             if user:
                 if user.is_active:
-                    auth.login(requst, user)
-                    messages.success(request, 'Welcome, '+user,
-                                     username+' you are now logged in')
+                    auth.login(request, user)
+                    messages.success(request, 'Welcome, '+user.username+' you are now logged in')
                     return redirect('expenses')
                 messages.error(
                     request, 'Account is not active, please check your email')
