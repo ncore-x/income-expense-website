@@ -22,7 +22,7 @@ class EmailValidationView(View):
         email = data['email']
         if not validate_email(email):
             return JsonResponse({'email_error': 'Email is invalid'}, status=400)
-        if User.objects.filter(username=username).exists():
+        if User.objects.filter(email=email).exists():
             return JsonResponse({'email_error': 'sorry email is use, choose another one'}, status=409)
         return JsonResponse({'email_valid': True})
 
@@ -82,7 +82,7 @@ class RegistrationView(View):
 
                 email = EmailMessage(
                     email_subject,
-                    'Hi ' + user.username + ', Please use this link to verify your account\n' + activate_url,
+                    'Hi ' + user.username + ', please use this link to verify your account\n' + activate_url,
                     'noreply@semycolon.com',
                     [email],
                 )
